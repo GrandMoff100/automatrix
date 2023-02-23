@@ -18,6 +18,10 @@ class Matrix:
         (a, b), (c, d) = self.body
         return a * d - b * c
 
+    @classmethod
+    def identity(cls, n: int):
+        return Matrix([[1 if i == j else 0 for i in range(n)] for j in range(n)])
+
 
 class LatexInterface:
     def __init__(self, matrix_class: str):
