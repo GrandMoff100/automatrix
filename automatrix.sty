@@ -1,0 +1,27 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{automatrix}[A package that does matrix operations for you.]
+
+%% Package variables
+\newcommand{\matrixclass}{matrix}
+\newcommand{\setmatrixclass}[1]{\renewcommand{\matrixclass}{#1}}
+
+\newcommand{\automatrixdebug}{true}
+\newcommand{\setmatrixdebug}[1]{\renewcommand{\automatrixdebug}{#1}}
+
+
+
+\newcommand{\store}[3]{
+    \newwrite#1
+    \immediate\openout#1=#2
+    \immediate\write#1{#3}
+    \immediate\closeout#1
+}
+
+\newcommand{\auto}[2]{
+    \store{\temp}{temp.input}{{"command": "#1", "arguments": #2, "matrix_class": "\matrixclass", "debug": \automatrixdebug}}
+    \store{\debug}{debug.out}{}
+    \input{|"python automatrix.py temp.input"}
+}
+
+
+\newcommand{\autoinversebyformula}[1]{\auto{inverse-formula}{["#1"]}}
