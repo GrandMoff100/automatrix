@@ -3,6 +3,7 @@ from __future__ import annotations
 import pathlib
 import sys
 import json
+import traceback
 from fractions import Fraction
 
 class Matrix:
@@ -23,6 +24,15 @@ class Matrix:
         return Matrix([[1 if i == j else 0 for i in range(n)] for j in range(n)])
 
 
+class AugmentedMatrix:
+    def __init__(self, left: Matrix, right: Matrix):
+        self.left = left
+        self.right = right
+
+    def row_operation(self):
+        pass
+
+
 class LatexInterface:
     def __init__(self, matrix_class: str):
         self.matrix_class = matrix_class
@@ -31,14 +41,17 @@ class LatexInterface:
         body = "\\\\".join([" & ".join([str(element) for element in row]) for row in matrix])
         return f"\\begin{{{self.matrix_class}}}{body}\\end{{{self.matrix_class}}}"
 
+    def render_augmented(self, left: Matrix, right: Matrix):
+        pass
+
     def output_debug(self, text: str) -> None:
-        print(r"\\begin{verbatim}" + text + "\\end{verbatim}")
+        print("\\begin{verbatim}" + text + "\\end{verbatim}")
 
     def output(self, text: str) -> None:
         print(text)
 
-    def step(self, line: str, newline: bool = True) -> None:
-        self.output(f"&= {line}" + ("\\\\" if newline else ""))
+    def step(self, line: str, newline: str = "\\\\", prefix: str = "&= ") -> None:
+        self.output(f"{prefix}{line}{newline}")
 
 class Engine:
     commands = {}
@@ -80,6 +93,12 @@ def inverse_by_formula(engine: Engine, matrix: str):
     engine.interface.step(
         engine.interface.render([[d / det, -b / det],[-c / det, a / det]])
     )
+
+
+@Engine.command("inverse-rref")
+def inverse_by_rref(engine: Engine, matrix: str):
+    matrix = Matrix.from_string(matrix)
+    augmented = AugmentedMatrix(matrix, matrix.identity())
 
 
 def main():
