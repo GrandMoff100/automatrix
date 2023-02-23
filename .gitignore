@@ -12,6 +12,10 @@
 *.cb2
 .*.lb
 
+# Project Specific-Ignores
+temp.input
+debug.out
+
 ## Intermediate documents:
 *.dvi
 *.xdv
