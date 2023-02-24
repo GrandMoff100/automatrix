@@ -6,6 +6,7 @@ import json
 import traceback
 import itertools
 from fractions import Fraction
+from typing import Any
 
 
 class Matrix:
@@ -97,13 +98,21 @@ class LatexInterface:
     def __init__(self, matrix_class: str):
         self.matrix_class = matrix_class
 
+    def render_matrix_body(self, matrix_body: list[list[Any]]) -> str:
+        return "\\\\".join(
+            [" & ".join([str(element) for element in row]) for row in matrix_body]
+        )
+
     def render_matrix(self, matrix: Matrix, matrix_class: str | None = None) -> str:
         if matrix_class is None:
             matrix_class = self.matrix_class
-        body = "\\\\".join(
-            [" & ".join([str(element) for element in row]) for row in matrix.body]
-        )
+        body = self.render_matrix_body(matrix.body)
         return f"\\begin{{{matrix_class}}}{body}\\end{{{matrix_class}}}"
+
+    def render_matrices(self, matrices: list[Matrix], matrix_class: str | None = None):
+        return "".join(
+            [self.render_matrix(matrix, matrix_class) for matrix in matrices]
+        )
 
     def render_augmented(self, matrix: AugmentedMatrix):
         return f'\\augmentedmatrix{{{self.render_matrix(matrix.left, "matrix")}}}{{{self.render_matrix(matrix.right, "matrix")}}}'
@@ -188,6 +197,29 @@ def inverse_by_rref(engine: Engine, matrix: str):
         engine.interface.step(
             engine.interface.render_augmented(augmented), prefix="&\\implies "
         )
+
+
+@Engine.command("matrix-multiply")
+def matrix_multiply(engine: Engine, matrices: str):
+    matrices = [Matrix.from_string(matrix) for matrix in matrices.split(",")]
+    engine.interface.output(engine.interface.render_matrices(matrices))
+    while len(matrices) > 1:
+        *others, left, right = matrices
+        matrices = others + [left @ right]
+        left.body = [
+            [
+                "+".join(
+                    [
+                        f"\\left({a}\\right)\\left({b}\\right)"
+                        for a, b in zip(left.rows[j], right.columns[i])
+                    ]
+                )
+                for j in range(left.rows)
+            ]
+            for i in range(right.columns)
+        ]
+        engine.interface.step(engine.interface.render_matrices(others + [left]))
+        engine.interface.step(engine.interface.render_matrices(matrices))
 
 
 def main():
