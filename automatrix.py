@@ -168,15 +168,17 @@ def inverse_by_rref(engine: Engine, matrix: str):
     # Find a pivot for the first column
     for column in range(augmented.left.columns):
         pivot_row = augmented.find_pivot_row(column)
-        augmented.move_row(pivot_row, column)
-        engine.interface.step(
-            engine.interface.render_augmented(augmented), prefix="&\\implies "
-        )
+        if pivot_row != column:
+            augmented.move_row(pivot_row, column)
+            engine.interface.step(
+                engine.interface.render_augmented(augmented), prefix="&\\implies "
+            )
         # Make the pivot
-        augmented.scale_row(1 / augmented.left.body[column][column], column)
-        engine.interface.step(
-            engine.interface.render_augmented(augmented), prefix="&\\implies "
-        )
+        if 1 / augmented.left.body[column][column] != 1:
+            augmented.scale_row(1 / augmented.left.body[column][column], column)
+            engine.interface.step(
+                engine.interface.render_augmented(augmented), prefix="&\\implies "
+            )
         # Make the rest of the column 0
         for row in range(augmented.left.rows):
             if row != column:
