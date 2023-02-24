@@ -168,7 +168,9 @@ def inverse_by_rref(engine: Engine, matrix: str):
     # Find a pivot for the first column
     for column in range(augmented.left.columns):
         pivot_row = augmented.find_pivot_row(column)
-        if pivot_row != column:
+        if pivot_row is None:
+            continue
+        elif pivot_row != column:
             augmented.move_row(pivot_row, column)
             engine.interface.step(
                 engine.interface.render_augmented(augmented), prefix="&\\implies "
