@@ -24,3 +24,7 @@ Copy `automatrix.sty` and `automatrix.py` into your project (and have LaTeX and 
 ```
 
 ![](./example.png)
+
+# ⭐ Star the repository!
+
+If you use this repository or thing its cool please help me out and star this repository. Thanks!
