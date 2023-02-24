@@ -15,6 +15,7 @@
 # Project Specific-Ignores
 temp.input
 debug.out
+__pycache__
 
 ## Intermediate documents:
 *.dvi
