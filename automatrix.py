@@ -40,6 +40,18 @@ class Matrix:
     def identity(cls, n: int):
         return Matrix([[1 if i == j else 0 for i in range(n)] for j in range(n)])
 
+    def __matmul__(self, matrix):
+        if self.columns != matrix.rows:
+            raise ValueError("Matrices are not compatible")
+        return Matrix(
+            [
+                [
+                    sum([a * b for a, b in zip(row, column)])
+                    for column in zip(*matrix.body)
+                ]
+                for row in self.body
+            ]
+        )
 
 class AugmentedMatrix:
     def __init__(self, left: Matrix, right: Matrix):
@@ -211,12 +223,12 @@ def matrix_multiply(engine: Engine, matrices: str):
                 "+".join(
                     [
                         f"\\left({a}\\right)\\left({b}\\right)"
-                        for a, b in zip(left.rows[j], right.columns[i])
+                        for a, b in zip(row, column)
                     ]
                 )
-                for j in range(left.rows)
+                for column in zip(*right.body)
             ]
-            for i in range(right.columns)
+            for row in left.body
         ]
         engine.interface.step(engine.interface.render_matrices(others + [left]))
         engine.interface.step(engine.interface.render_matrices(matrices))
