@@ -1,12 +1,19 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{automatrix}[A package that does matrix operations for you.]
 
+%% Package commands
+
+\newcommand{\augmentedmatrix}[2]{\left(#1\right.\left| ~ #2\right)}
+
 %% Package variables
 \newcommand{\matrixclass}{matrix}
 \newcommand{\setmatrixclass}[1]{\renewcommand{\matrixclass}{#1}}
 
 \newcommand{\automatrixdebug}{true}
 \newcommand{\setmatrixdebug}[1]{\renewcommand{\automatrixdebug}{#1}}
+
+\newcommand{\augmentedmatrixcommand}{\augmentedmatrix}
+\newcommand{\setaugmentedmatrixcommand}[1]{\renewcommand{\augmentedmatrixcommand}{#1}}
 
 
 
@@ -25,3 +32,4 @@
 
 
 \newcommand{\autoinversebyformula}[1]{\auto{inverse-formula}{["#1"]}}
+\newcommand{\autoinversebyrref}[1]{\auto{inverse-rref}{["#1"]}}
