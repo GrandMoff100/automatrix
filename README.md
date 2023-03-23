@@ -1,11 +1,20 @@
 # automatrix
-A latex integration that generates latex work showing the computation matrix operations.
+A latex integration that generates latex work showing the work for the matrix operations.
 
 ## Installation
 
 Copy `automatrix.sty` and `automatrix.py` into your project (and have LaTeX and python installed on your system).
 
-## Usage
+
+## Commands
+
+### ``\autoinversebyformula{}``
+
+### ``\autoinversebyrref{}``
+
+### ``\automatrixmultiply{}``
+
+## Example
 ```tex
 \usepackage{automatrix}
 
