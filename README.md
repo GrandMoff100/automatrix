@@ -14,6 +14,10 @@ Copy `automatrix.sty` and `automatrix.py` into your project (and have LaTeX and 
 
 ### ``\automatrixmultiply{}``
 
+### ``\autodeterminantbypattern{}``
+
+### ``\autodeterminantbycofactor{}``
+
 ## Example
 ```tex
 \usepackage{automatrix}
