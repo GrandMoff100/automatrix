@@ -45,6 +45,20 @@ class Matrix:
     def identity(cls, n: int) -> "Matrix":
         return Matrix([[1 if i == j else 0 for i in range(n)] for j in range(n)])
 
+    def crop(self, x: int, y: int) -> "Matrix":
+        new_body = copy.deepcopy(self.body)
+        new_body.pop(y)
+        for row in new_body:
+            row.pop(x)
+        return Matrix(new_body)
+
+    def cofactor_expansion(
+        self, target_row: int = 0
+    ) -> list[tuple[Fraction, "Matrix"]]:
+        return [
+            (factor, self.crop(i, target_row))
+            for i, factor in enumerate(self.body[target_row])
+        ]
 
     def __matmul__(self, matrix) -> "Matrix":
         if self.columns != matrix.rows:
@@ -243,6 +257,21 @@ def matrix_multiply(engine: Engine, matrices: str) -> None:
         ]
         engine.interface.step(engine.interface.render_matrices(others + [left]))
         engine.interface.step(engine.interface.render_matrices(matrices))
+
+
+@Engine.command("determinant-by-cofactor-expansion")
+def determinant_by_cofactor_expansion(engine: Engine, input_matrix: str) -> None:
+    matrix = Matrix.from_string(input_matrix)
+    engine.interface.output(
+        engine.interface.render_matrix(matrix, matrix_class="vmatrix")
+    )
+    engine.interface.step(
+        "+".join(
+            f"\\left({factor}\\right)"
+            + engine.interface.render_matrix(sub_matrix, matrix_class="vmatrix")
+            for factor, sub_matrix in matrix.cofactor_expansion()
+        )
+    )
 
 
 def main():

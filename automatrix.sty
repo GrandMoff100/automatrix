@@ -1,8 +1,7 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{automatrix}[A package that does matrix operations for you.]
 
-%% Package commands
-
+%% Package rendering commands
 \newcommand{\augmentedmatrix}[2]{\left(#1\right.\left| ~ #2\right)}
 
 %% Package variables
@@ -16,7 +15,7 @@
 \newcommand{\setaugmentedmatrixcommand}[1]{\renewcommand{\augmentedmatrixcommand}{#1}}
 
 
-
+%% Package commands
 \newcommand{\store}[3]{
     \newwrite#1
     \immediate\openout#1=#2
@@ -30,7 +29,8 @@
     \input{|"python automatrix.py temp.input"}
 }
 
-
+%% User commands
 \newcommand{\autoinversebyformula}[1]{\auto{inverse-formula}{["#1"]}}
 \newcommand{\autoinversebyrref}[1]{\auto{inverse-rref}{["#1"]}}
 \newcommand{\automatrixmultiply}[1]{\auto{matrix-multiply}{["#1"]}}
+\newcommand{\autodeterminantbycofactor}[1]{\auto{determinant-by-cofactor-expansion}{["#1"]}}
