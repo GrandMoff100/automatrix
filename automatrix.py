@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pathlib
 import sys
+import copy
 import json
 import traceback
 import itertools
@@ -20,27 +21,32 @@ class Matrix:
             [[Fraction(num) for num in row.split("&")] for row in content.split("\\")]
         )
 
-    def determinant(self):
+    def determinant(self) -> Fraction:
         (a, b), (c, d) = self.body
         return a * d - b * c
 
     @property
-    def rows(self):
+    def is_2x2(self) -> bool:
+        return self.rows == 2 and self.columns == 2
+
+    @property
+    def rows(self) -> int:
         return len(self.body)
 
     @property
-    def columns(self):
+    def columns(self) -> int:
         return len(self.body[0])
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int, int]:
         return (self.rows, self.columns)
 
     @classmethod
-    def identity(cls, n: int):
+    def identity(cls, n: int) -> "Matrix":
         return Matrix([[1 if i == j else 0 for i in range(n)] for j in range(n)])
 
-    def __matmul__(self, matrix):
+
+    def __matmul__(self, matrix) -> "Matrix":
         if self.columns != matrix.rows:
             raise ValueError("Matrices are not compatible")
         return Matrix(
@@ -53,12 +59,13 @@ class Matrix:
             ]
         )
 
+
 class AugmentedMatrix:
-    def __init__(self, left: Matrix, right: Matrix):
+    def __init__(self, left: Matrix, right: Matrix) -> None:
         self.left = left
         self.right = right
 
-    def row_operation(self, row_coefficients: list[int], target_row: int):
+    def row_operation(self, row_coefficients: list[int], target_row: int) -> None:
         self.left.body[target_row] = self.row_combination(self.left, row_coefficients)
         self.right.body[target_row] = self.row_combination(self.right, row_coefficients)
 
@@ -143,9 +150,13 @@ class Engine:
     commands = {}
 
     def __init__(
-        self, command: str, arguments: list[str], debug: bool, matrix_class: str
-    ):
-        self.command = command
+        self,
+        command: str,
+        arguments: list[str],
+        debug: bool,
+        matrix_class: str,
+    ) -> None:
+        self._command = command
         self.arguments = arguments
         self.debug = debug
         self.interface = LatexInterface(matrix_class)
@@ -162,11 +173,11 @@ class Engine:
         self.interface.output("Hello World")
 
     def run(self):
-        self.commands.get(self.command, self.default)(self, *self.arguments)
+        self.commands.get(self._command, self.default)(self, *self.arguments)
 
 
 @Engine.command("inverse-formula")
-def inverse_by_formula(engine: Engine, matrix: str):
+def inverse_by_formula(engine: Engine, matrix: str) -> None:
     matrix = Matrix.from_string(matrix)
     (a, b), (c, d) = matrix.body
     engine.interface.step(
@@ -182,7 +193,7 @@ def inverse_by_formula(engine: Engine, matrix: str):
 
 
 @Engine.command("inverse-rref")
-def inverse_by_rref(engine: Engine, matrix: str):
+def inverse_by_rref(engine: Engine, matrix: str) -> None:
     matrix = Matrix.from_string(matrix)
     augmented = AugmentedMatrix(matrix, matrix.identity(matrix.rows))
     engine.interface.output(engine.interface.render_augmented(augmented))
@@ -212,7 +223,7 @@ def inverse_by_rref(engine: Engine, matrix: str):
 
 
 @Engine.command("matrix-multiply")
-def matrix_multiply(engine: Engine, matrices: str):
+def matrix_multiply(engine: Engine, matrices: str) -> None:
     matrices = [Matrix.from_string(matrix) for matrix in matrices.split(",")]
     engine.interface.output(engine.interface.render_matrices(matrices))
     while len(matrices) > 1:
