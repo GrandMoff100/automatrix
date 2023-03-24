@@ -16,6 +16,10 @@ Copy `automatrix.sty` and `automatrix.py` into your project (and have LaTeX and 
 
 ### ``\autodeterminantbypattern{}``
 
+> Aliased `\autodetpat{}`
+
+Automatically get a determinant using the pattern method. Only argument is the matrix.
+
 ### ``\autodeterminantbycofactor{}``
 
 ## Example

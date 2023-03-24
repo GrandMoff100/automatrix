@@ -1,12 +1,15 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{automatrix}[A package that does matrix operations for you.]
+\RequirePackage{tikz}
+\RequirePackage{mdframed}
+\RequirePackage{amsmath}
 
 %% Package commands
 
 \newcommand{\augmentedmatrix}[2]{\left(#1\right.\left| ~ #2\right)}
 
 %% Package variables
-\newcommand{\matrixclass}{matrix}
+\newcommand{\matrixclass}{bmatrix}
 \newcommand{\setmatrixclass}[1]{\renewcommand{\matrixclass}{#1}}
 
 \newcommand{\automatrixdebug}{true}
@@ -34,3 +37,9 @@
 \newcommand{\autoinversebyformula}[1]{\auto{inverse-formula}{["#1"]}}
 \newcommand{\autoinversebyrref}[1]{\auto{inverse-rref}{["#1"]}}
 \newcommand{\automatrixmultiply}[1]{\auto{matrix-multiply}{["#1"]}}
+\newcommand{\autodeterminantbypattern}[1]{\auto{determinant-by-pattern}{["#1"]}}
+\newcommand{\autodetpat}[1]{\autodeterminantbypattern{#1}}
+
+%% Used for circling numbers in determinant-by-pattern
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
