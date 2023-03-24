@@ -7,7 +7,7 @@ import traceback
 import itertools
 import copy
 from fractions import Fraction
-from typing import Any
+from typing import Any, Generator
 
 
 class Matrix:
@@ -24,7 +24,7 @@ class Matrix:
     def determinant(self):
         (a, b), (c, d) = self.body
         return a * d - b * c
-    
+
     def crop(self, x: int, y: int) -> Matrix:
         newmat = Matrix(copy.deepcopy(self.body))
         newmat.body.pop(y)
@@ -60,6 +60,17 @@ class Matrix:
                 for row in self.body
             ]
         )
+
+    def patterns(self) -> Generator[list[Fraction], None, None]:
+        """Generate the "patterns" of a matrix, i.e. the permutations of its rows"""
+        if self.rows == 1:
+            yield [self.body[0][0]]
+            return
+        for i in range(self.rows):
+            cropped_mat = self.crop(i, 0)
+            for others in cropped_mat.patterns():
+                yield [self.body[0][i], *others]
+
 
 class AugmentedMatrix:
     def __init__(self, left: Matrix, right: Matrix):
@@ -241,23 +252,17 @@ def matrix_multiply(engine: Engine, matrices: str):
         engine.interface.step(engine.interface.render_matrices(others + [left]))
         engine.interface.step(engine.interface.render_matrices(matrices))
 
+
 @Engine.command("determinant-by-pattern")
 def determinant_pattern(engine: Engine, matrix: str):
     """
     Determine the determinant using the pattern method.
     Best method to calculate determinants, if you use
     anything else then you are lame.
-
-    Padding
-    to
-    make
-    my
-    contributions
-    look
-    bigger
     """
+
     matrix = Matrix.from_string(matrix)
-    patterns = list(getpatterns(addcoords(matrix)))
+    patterns = list(addcoords(matrix).patterns())
     inversion_list = []
     for pat in patterns:
         inversions = 0
@@ -271,30 +276,51 @@ def determinant_pattern(engine: Engine, matrix: str):
     products = []
     lr = 0
     next_out = None
-    engine.interface.output("\\begin{mdframed} $\\det\\left(" + engine.interface.render_matrix(matrix) + "\\right)$ by pattern method.\\\\\\vspace{2mm}\\line(1,0){\\columnwidth} \\\\\\vspace{2mm}\\\\")
+    engine.interface.output(
+        "\\begin{mdframed} $\\det\\left("
+        + engine.interface.render_matrix(matrix)
+        + "\\right)$ by pattern method.\\\\\\vspace{2mm}\\line(1,0){\\columnwidth} \\\\\\vspace{2mm}\\\\"
+    )
     for pat, invs in zip(patterns, inversion_list):
         circled = copy.deepcopy(matrix)
         for num in pat:
             # This is fine
-            circled.body[num[1][0]][num[1][1]] = "\\circled{%s}" % str(circled.body[num[1][0]][num[1][1]])
-        engine.interface.output(("\\hfill" if lr % 2 == 1 else "") + "$" + engine.interface.render_matrix(circled) + "$")
+            circled.body[num[1][0]][num[1][1]] = "\\circled{%s}" % str(
+                circled.body[num[1][0]][num[1][1]]
+            )
+        engine.interface.output(
+            ("\\hfill" if lr % 2 == 1 else "")
+            + "$"
+            + engine.interface.render_matrix(circled)
+            + "$"
+        )
         sign = "+" if invs % 2 == 0 else "-"
         lr += 1
         prod = 1
         for i in pat:
             prod *= i[0]
-        if sign == "+": total += prod
-        else: total -= prod
+        if sign == "+":
+            total += prod
+        else:
+            total -= prod
         if lr % 2 == 0:
-            engine.interface.output("\\\\" + "$" + sign + "(" + "\\cdot".join([str(i[0]) for i in pat]) + ") \\Rightarrow " + sign + "$")
+            pats = "\\cdot".join([str(i[0]) for i in pat])
+            engine.interface.output(f"\\\\${sign}({pats}) \\Rightarrow {sign}$")
             engine.interface.output(prod)
             if next_out is not None:
                 engine.interface.output("\\hfill" + next_out[0])
                 engine.interface.output(str(next_out[1]) + "\\\\")
         else:
-            next_out = ("$" + sign + "(" + "\\cdot".join([str(i[0]) for i in pat]) + ") \\Rightarrow " + sign + "$", prod)
+            pats = "\\cdot".join([str(i[0]) for i in pat])
+            next_out = (f"${sign}({pats}) \\Rightarrow {sign}$", prod)
         products.append(sign + str(prod))
-    engine.interface.output("\\\\\\vspace{2mm}\\line(1,0){\\columnwidth} \\\\\\vspace{2mm}\\\\" + "$\\det\\left(" + engine.interface.render_matrix(matrix) + "\\right) = " + "".join(products) + " = " + str(total) + "$\n\\end{mdframed}")
+    engine.interface.output(
+        "\\\\\\vspace{2mm}\\line(1,0){\\columnwidth} \\\\\\vspace{2mm}\\\\"
+        "$\\det\\left("
+        f"{engine.interface.render_matrix(matrix)}"
+        f"\\right) = {''.join(products)} = {total}"
+        "$\n\\end{mdframed}"
+    )
 
 
 def addcoords(matrix: Matrix):
@@ -305,21 +331,8 @@ def addcoords(matrix: Matrix):
     matrix = copy.deepcopy(matrix)
     for i, row in enumerate(matrix.body):
         for j, val in enumerate(row):
-            matrix.body[i][j] = (val, (i,j))
+            matrix.body[i][j] = (val, (i, j))
     return matrix
-
-
-def getpatterns(matrix: Matrix):
-    """
-    Recursive function to generate patterns
-    """
-    if matrix.rows == 1:
-        yield [matrix.body[0][0]]
-        return
-    for i in range(matrix.rows):
-        cropped_mat = matrix.crop(i,0)
-        for k in getpatterns(cropped_mat):
-            yield [matrix.body[0][i], *k]
 
 
 def main():
