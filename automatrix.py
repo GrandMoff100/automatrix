@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import copy
+import itertools
+import json
 import pathlib
 import sys
-import json
 import traceback
-import itertools
-import copy
 from fractions import Fraction
 from typing import Any, Generator
 
@@ -15,40 +15,42 @@ class Matrix:
         self.body = body
 
     @classmethod
-    def from_string(cls, content: str):
+    def from_string(cls, content: str) -> "Matrix":
+        """Create a matrix from a string in the format."""
         content = content.strip()
         return Matrix(
             [[Fraction(num) for num in row.split("&")] for row in content.split("\\")]
         )
 
-    def determinant(self):
+    def determinant(self) -> Fraction:
+        """Calculate the determinant of a 2x2 matrix."""
         (a, b), (c, d) = self.body
         return a * d - b * c
 
-    def crop(self, x: int, y: int) -> Matrix:
-        newmat = Matrix(copy.deepcopy(self.body))
-        newmat.body.pop(y)
-        for row in newmat.body:
+    def crop(self, x: int, y: int) -> "Matrix":
+        new = Matrix(copy.deepcopy(self.body))
+        new.body.pop(y)
+        for row in new.body:
             row.pop(x)
-        return newmat
+        return new
 
     @property
-    def rows(self):
+    def rows(self) -> int:
         return len(self.body)
 
     @property
-    def columns(self):
+    def columns(self) -> int:
         return len(self.body[0])
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int, int]:
         return (self.rows, self.columns)
 
     @classmethod
-    def identity(cls, n: int):
+    def identity(cls, n: int) -> "Matrix":
         return Matrix([[1 if i == j else 0 for i in range(n)] for j in range(n)])
 
-    def __matmul__(self, matrix):
+    def __matmul__(self, matrix) -> "Matrix":
         if self.columns != matrix.rows:
             raise ValueError("Matrices are not compatible")
         return Matrix(
@@ -61,15 +63,36 @@ class Matrix:
             ]
         )
 
-    def patterns(self) -> Generator[list[Fraction], None, None]:
-        """Generate the "patterns" of a matrix, i.e. the permutations of its rows"""
-        if self.rows == 1:
-            yield [self.body[0][0]]
-            return
-        for i in range(self.rows):
-            cropped_mat = self.crop(i, 0)
-            for others in cropped_mat.patterns():
-                yield [self.body[0][i], *others]
+    def patterns(
+        self,
+    ) -> Generator[
+        tuple[
+            list[tuple[int, int]],
+            list[
+                tuple[
+                    tuple[int, int],
+                    tuple[int, int],
+                ]
+            ],
+        ],
+        None,
+        None,
+    ]:
+        """Generate the "patterns" and the "inversions" of each "pattern" of a matrix, i.e. the permutations of its columns/rows"""
+        for row_permutation in itertools.permutations(range(self.rows)):
+            pattern = [
+                (i, j)
+                for j, row in enumerate(self.body)
+                for i, _ in enumerate(row)
+                if (i, j) in enumerate(row_permutation)
+            ]
+            inversions = [
+                ((x1, y1), (x2, y2))
+                for x2, y2 in pattern
+                for x1, y1 in pattern
+                if y1 > y2 and x1 < x2
+            ]
+            yield pattern, inversions
 
 
 class AugmentedMatrix:
@@ -129,16 +152,58 @@ class LatexInterface:
     def __init__(self, matrix_class: str):
         self.matrix_class = matrix_class
 
-    def render_matrix_body(self, matrix_body: list[list[Any]]) -> str:
-        return "\\\\".join(
-            [" & ".join([str(element) for element in row]) for row in matrix_body]
+    def wrap_matrix_with_nodes(
+        self, body: list[list[str]], node_name_prefix: str = ""
+    ) -> tuple[list[list[str]], list[list[str]]]:
+        """Wrap a matrix's element as tikz nodes. Return the matrix and the node names"""
+        return [
+            [
+                self.render_command("rn", f"{node_name_prefix}{i}-{j}", element)
+                for i, element in enumerate(row)
+            ]
+            for j, row in enumerate(body)
+        ], [
+            [f"{node_name_prefix}{i}-{j}" for i, _ in enumerate(row)]
+            for j, row in enumerate(body)
+        ]
+
+    def embed_pattern(
+        self, matrix: Matrix, pattern: list[tuple[int, int]]
+    ) -> list[list[str]]:
+        """Embed a pattern into a matrix, i.e. circle the elements of the matrix that are in the pattern"""
+        return [
+            [
+                self.render_command("circled", element)
+                if (i, j) in pattern
+                else str(element)
+                for i, element in enumerate(row)
+            ]
+            for j, row in enumerate(matrix.body)
+        ]
+
+    def draw_arrows(self, arrows: list[tuple[str, str]]) -> list[list[str]]:
+        """Draw arrows between the tikz nodes in a matrix"""
+        return self.render_environment(
+            "tikzpicture",
+            "\n".join(f"\\draw [->] ({start}) -- ({end})" for start, end in arrows),
+        )
+
+    def render_grid(
+        self, matrix_body: list[list[Any]], matrix_class: str | None = None
+    ) -> str:
+        if matrix_class is None:
+            matrix_class = "matrix"
+        return self.render_environment(
+            matrix_class,
+            "\\\\".join(
+                [" & ".join([str(element) for element in row]) for row in matrix_body]
+            ),
         )
 
     def render_matrix(self, matrix: Matrix, matrix_class: str | None = None) -> str:
         if matrix_class is None:
             matrix_class = self.matrix_class
-        body = self.render_matrix_body(matrix.body)
-        return f"\\begin{{{matrix_class}}}{body}\\end{{{matrix_class}}}"
+        return self.render_grid(matrix.body, matrix_class)
 
     def render_matrices(self, matrices: list[Matrix], matrix_class: str | None = None):
         return "".join(
@@ -146,10 +211,22 @@ class LatexInterface:
         )
 
     def render_augmented(self, matrix: AugmentedMatrix):
-        return f'\\augmentedmatrix{{{self.render_matrix(matrix.left, "matrix")}}}{{{self.render_matrix(matrix.right, "matrix")}}}'
+        return self.render_command(
+            "augmentedmatrix",
+            self.render_matrices([matrix.left, matrix.right], "matrix"),
+        )
+
+    def render_environment(self, environment: str, content: str):
+        return f"\\begin{{{environment}}}{content}\\end{{{environment}}}"
+
+    def render_command(self, command: str, *args: str):
+        return f"\\{command}" + "".join([f"{{{arg}}}" for arg in args])
 
     def output_debug(self, text: str) -> None:
-        print("\\begin{verbatim}" + text + "\\end{verbatim}")
+        self.output(self.render_environment("verbatim", text))
+
+    def output_math(self, text: str) -> None:
+        return self.output(f"${text}$")
 
     def output(self, text: str) -> None:
         print(text)
@@ -231,8 +308,8 @@ def inverse_by_rref(engine: Engine, matrix: str):
 
 
 @Engine.command("matrix-multiply")
-def matrix_multiply(engine: Engine, matrices: str):
-    matrices = [Matrix.from_string(matrix) for matrix in matrices.split(",")]
+def matrix_multiply(engine: Engine, matrix_strings: str):
+    matrices = [Matrix.from_string(matrix) for matrix in matrix_strings.split(",")]
     engine.interface.output(engine.interface.render_matrices(matrices))
     while len(matrices) > 1:
         *others, left, right = matrices
@@ -254,85 +331,30 @@ def matrix_multiply(engine: Engine, matrices: str):
 
 
 @Engine.command("determinant-by-pattern")
-def determinant_pattern(engine: Engine, matrix: str):
+def determinant_pattern(engine: Engine, matrix_string: str) -> None:
     """
     Determine the determinant using the pattern method.
     Best method to calculate determinants, if you use
     anything else then you are lame.
+    -- Zeb --
     """
-
-    matrix = Matrix.from_string(matrix)
-    patterns = list(addcoords(matrix).patterns())
-    inversion_list = []
-    for pat in patterns:
-        inversions = 0
-        for pair in itertools.combinations(pat, 2):
-            a = pair[0][1]
-            b = pair[1][1]
-            if (a[0] < b[0] and a[1] > b[1]) or (b[0] < a[0] and b[1] > a[1]):
-                inversions += 1
-        inversion_list.append(inversions)
-    total = 0
-    products = []
-    lr = 0
-    next_out = None
-    engine.interface.output(
-        "\\begin{mdframed} $\\det\\left("
-        + engine.interface.render_matrix(matrix)
-        + "\\right)$ by pattern method.\\\\\\vspace{2mm}\\line(1,0){\\columnwidth} \\\\\\vspace{2mm}\\\\"
-    )
-    for pat, invs in zip(patterns, inversion_list):
-        circled = copy.deepcopy(matrix)
-        for num in pat:
-            # This is fine
-            circled.body[num[1][0]][num[1][1]] = "\\circled{%s}" % str(
-                circled.body[num[1][0]][num[1][1]]
-            )
-        engine.interface.output(
-            ("\\hfill" if lr % 2 == 1 else "")
-            + "$"
-            + engine.interface.render_matrix(circled)
-            + "$"
+    matrix = Matrix.from_string(matrix_string)
+    for pattern, inversions in matrix.patterns():
+        rendered_pattern, node_names = engine.interface.wrap_matrix_with_nodes(
+            engine.interface.embed_pattern(matrix, pattern)
         )
-        sign = "+" if invs % 2 == 0 else "-"
-        lr += 1
-        prod = 1
-        for i in pat:
-            prod *= i[0]
-        if sign == "+":
-            total += prod
-        else:
-            total -= prod
-        if lr % 2 == 0:
-            pats = "\\cdot".join([str(i[0]) for i in pat])
-            engine.interface.output(f"\\\\${sign}({pats}) \\Rightarrow {sign}$")
-            engine.interface.output(prod)
-            if next_out is not None:
-                engine.interface.output("\\hfill" + next_out[0])
-                engine.interface.output(str(next_out[1]) + "\\\\")
-        else:
-            pats = "\\cdot".join([str(i[0]) for i in pat])
-            next_out = (f"${sign}({pats}) \\Rightarrow {sign}$", prod)
-        products.append(sign + str(prod))
-    engine.interface.output(
-        "\\\\\\vspace{2mm}\\line(1,0){\\columnwidth} \\\\\\vspace{2mm}\\\\"
-        "$\\det\\left("
-        f"{engine.interface.render_matrix(matrix)}"
-        f"\\right) = {''.join(products)} = {total}"
-        "$\n\\end{mdframed}"
-    )
-
-
-def addcoords(matrix: Matrix):
-    """
-    Add coords to a matrix
-    ~~Not at all violating typehints~~
-    """
-    matrix = copy.deepcopy(matrix)
-    for i, row in enumerate(matrix.body):
-        for j, val in enumerate(row):
-            matrix.body[i][j] = (val, (i, j))
-    return matrix
+        engine.interface.output(
+            engine.interface.render_grid(rendered_pattern, "bmatrix")
+        )
+        # engine.interface.output(
+        #     engine.interface.draw_arrows(
+        #         pattern,
+        #         [
+        #             (node_names[j1][i1], node_names[j2][i2])
+        #             for (i1, j1), (i2, j2) in inversions
+        #         ],
+        #     )
+        # )
 
 
 def main():

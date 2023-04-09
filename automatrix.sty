@@ -4,6 +4,9 @@
 \RequirePackage{mdframed}
 \RequirePackage{amsmath}
 
+\usetikzlibrary{tikzmark, calc}
+
+
 %% Package commands
 
 \newcommand{\augmentedmatrix}[2]{\left(#1\right.\left| ~ #2\right)}
@@ -43,3 +46,8 @@
 %% Used for circling numbers in determinant-by-pattern
 \newcommand*\circled[1]{\tikz[baseline=(char.base)]{
             \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
+
+%% Remember elements in a matrix to arrows between them.
+\newcommand{\rn}[2]{
+    \tikz[remember picture,baseline=(#1.base)]\node [inner sep=0] (#1) {$#2$};%
+}
