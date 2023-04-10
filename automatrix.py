@@ -149,8 +149,9 @@ class AugmentedMatrix:
 
 
 class LatexInterface:
-    def __init__(self, matrix_class: str):
+    def __init__(self, matrix_class: str, pattern_grid_width: int) -> None:
         self.matrix_class = matrix_class
+        self.pattern_grid_width = pattern_grid_width
 
     def wrap_matrix_with_nodes(
         self, body: list[list[str]], node_name_prefix: str = ""
@@ -239,12 +240,12 @@ class Engine:
     commands = {}
 
     def __init__(
-        self, command: str, arguments: list[str], debug: bool, matrix_class: str
+        self, command: str, arguments: list[str], debug: bool, matrix_class: str, pattern_grid_width: int,
     ):
         self.command = command
         self.arguments = arguments
         self.debug = debug
-        self.interface = LatexInterface(matrix_class)
+        self.interface = LatexInterface(matrix_class, pattern_grid_width)
 
     @classmethod
     def command(cls, name: str):
@@ -339,13 +340,13 @@ def determinant_pattern(engine: Engine, matrix_string: str) -> None:
     -- Zeb --
     """
     matrix = Matrix.from_string(matrix_string)
+    pattern_grid = []
     for pattern, inversions in matrix.patterns():
         rendered_pattern, node_names = engine.interface.wrap_matrix_with_nodes(
             engine.interface.embed_pattern(matrix, pattern)
         )
-        engine.interface.output(
-            engine.interface.render_grid(rendered_pattern, "bmatrix")
-        )
+        pattern_bmatrix = engine.interface.render_grid(rendered_pattern, "bmatrix")
+        pattern_grid.append(pattern_bmatrix)
         # engine.interface.output(
         #     engine.interface.draw_arrows(
         #         pattern,

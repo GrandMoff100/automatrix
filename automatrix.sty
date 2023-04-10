@@ -15,6 +15,10 @@
 \newcommand{\matrixclass}{bmatrix}
 \newcommand{\setmatrixclass}[1]{\renewcommand{\matrixclass}{#1}}
 
+\newcommand{\patterngridwidth}{3}
+\newcommand{\setpatterngridwidth}[1]{\renewcommand{\patterngridwidth}{#1}}
+
+
 \newcommand{\automatrixdebug}{true}
 \newcommand{\setmatrixdebug}[1]{\renewcommand{\automatrixdebug}{#1}}
 
@@ -31,7 +35,7 @@
 }
 
 \newcommand{\auto}[2]{
-    \store{\temp}{temp.input}{{"command": "#1", "arguments": #2, "matrix_class": "\matrixclass", "debug": \automatrixdebug}}
+    \store{\temp}{temp.input}{{"command": "#1", "arguments": #2, "matrix_class": "\matrixclass", "debug": \automatrixdebug, "pattern_grid_width": \patterngridwidth}}
     \store{\debug}{debug.out}{}
     \input{|"python automatrix.py temp.input"}
 }
