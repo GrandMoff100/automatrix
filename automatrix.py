@@ -7,7 +7,29 @@ import pathlib
 import sys
 import traceback
 from fractions import Fraction
-from typing import Any, Generator
+from typing import Any, Generator, Iterable
+
+
+def intersperse(
+    _iterable: Iterable[Any], delimiters: Iterable[Any]
+) -> Generator[Any, None, None]:
+    """
+    Intersperse elements in a delimiter iterable in between elements in an iterable.
+    Note: cuts off iterable with delimiter size.
+    """
+    iterable = iter(_iterable)
+    yield next(iterable)
+    for delimiter, element in zip(delimiters, iterable):
+        yield delimiter
+        yield element
+
+
+def rectangularize(_iterable: Iterable[Any], width: int) -> list[list[Any]]:
+    """Reshape a 1D iterable into a 2D list."""
+    elements = list(_iterable)
+    return [
+        elements[i * width : (i + 1) * width] for i in range(len(elements) // width + 1)
+    ]
 
 
 class Matrix:
