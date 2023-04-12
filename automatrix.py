@@ -236,17 +236,14 @@ class LatexInterface:
             self.render_matrices([matrix.left, matrix.right], "matrix"),
         )
 
-    def render_environment(self, environment: str, content: str):
-        return f"\\begin{{{environment}}}{content}\\end{{{environment}}}"
+    def render_environment(self, environment: str, content: str, options: str = ""):
+        return f"\\begin{{{environment}}}{options}\n{content}\n\\end{{{environment}}}"
 
     def render_command(self, command: str, *args: str):
         return f"\\{command}" + "".join([f"{{{arg}}}" for arg in args])
 
     def output_debug(self, text: str) -> None:
         self.output(self.render_environment("verbatim", text))
-
-    def output_math(self, text: str) -> None:
-        return self.output(f"${text}$")
 
     def output(self, text: str) -> None:
         print(text)
