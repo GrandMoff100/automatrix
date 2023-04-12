@@ -10,6 +10,7 @@ import pathlib
 import sys
 import traceback
 from typing import Any, Generator, Iterable
+import contextlib
 
 
 def intersperse(
@@ -208,7 +209,7 @@ class LatexInterface:
 
     def draw_arrows(self, arrows: list[tuple[str, str]]) -> list[list[str]]:
         """Draw arrows between the tikz nodes in a matrix"""
-        return "\n".join(f"\\draw [->] ({start}) -- ({end});" for start, end in arrows)
+        return "\n".join(f"\\draw [->] ({start}) to[bend left=30] ({end});" for start, end in arrows)
 
     def render_grid(
         self, matrix_body: list[list[Any]], matrix_class: str | None = None
@@ -252,6 +253,12 @@ class LatexInterface:
 
     def step(self, line: str, newline: str = "\\\\", prefix: str = "&= ") -> None:
         self.output(f"{prefix}{line}{newline}")
+
+    @contextlib.contextmanager
+    def output_environment(self, name: str) -> None:
+        self.output(f"\\begin{{{name}}}")
+        yield
+        self.output(f"\\end{{{name}}}")
 
 
 class Engine:
@@ -355,7 +362,7 @@ def matrix_multiply(engine: Engine, matrix_strings: str):
 
 
 @Engine.command("list-patterns")
-def determinant_pattern(engine: Engine, matrix_string: str) -> None:
+def list_patterns(engine: Engine, matrix_string: str) -> None:
     """List all the patterns in a matrix and their inversion counts."""
     matrix = Matrix.from_string(matrix_string)
     rendered_patterns = []
@@ -400,7 +407,7 @@ def determinant_pattern(engine: Engine, matrix_string: str) -> None:
 
 
 @Engine.command("determinant-by-pattern")
-async def determinant_by_pattern(engine: Engine, matrix_string: str) -> None:
+def determinant_by_pattern(engine: Engine, matrix_string: str) -> None:
     """
     Determine the determinant using the pattern method.
     Best method to calculate determinants, if you use
@@ -408,36 +415,35 @@ async def determinant_by_pattern(engine: Engine, matrix_string: str) -> None:
     -- Zeb --
     """
     matrix = Matrix.from_string(matrix_string)
-    engine.interface.output(engine.interface.render_matrix(matrix, "vmatrix"))
-    engine.interface.step(
-        "".join(
-            f"(-1)^{len(inversions)}"
-            + "".join(f"\\left({matrix.body[j][i]})\\right)" for i, j in pattern)
-            for pattern, inversions in matrix.patterns()
-        )
-    )
-    engine.interface.step(
-        "".join(
-            str(
-                Fraction(
-                    (-1) ** len(inversions)
-                    + reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
-                )
-            )
-            for pattern, inversions in matrix.patterns()
-        )
-    )
-    engine.interface.step(
-        str(
-            sum(
-                Fraction(
-                    (-1) ** len(inversions)
-                    + reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
-                )
+    with engine.interface.output_environment("align*"):
+        engine.interface.output(engine.interface.render_matrix(matrix, "vmatrix"))
+        engine.interface.step(
+            "+".join(
+                f"(-1)^{len(inversions)}"
+                + "".join(f"\\left({matrix.body[j][i]}\\right)" for i, j in pattern)
                 for pattern, inversions in matrix.patterns()
             )
         )
-    )
+        engine.interface.step(
+            "".join("+" * int(product >= 0) + str(product) for product in (
+                Fraction(
+                        (-1) ** len(inversions)
+                        * reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
+                    )
+                for pattern, inversions in matrix.patterns()
+            )).removeprefix("+"))
+        engine.interface.step(
+            str(
+                sum(
+                    Fraction(
+                        (-1) ** len(inversions)
+                        * reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
+                    )
+                    for pattern, inversions in matrix.patterns()
+                )
+            ),
+            newline=""
+        )
 
 
 def main():
