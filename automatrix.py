@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import copy
 import itertools
+from functools import reduce
 import json
+import operator
+from fractions import Fraction
 import pathlib
 import sys
 import traceback
-from fractions import Fraction
 from typing import Any, Generator, Iterable
 
 
@@ -263,7 +265,7 @@ class Engine:
         matrix_class: str,
         pattern_grid_width: int,
     ):
-        self.command = command
+        self._command = command
         self.arguments = arguments
         self.debug = debug
         self.interface = LatexInterface(matrix_class, pattern_grid_width)
@@ -280,7 +282,7 @@ class Engine:
         self.interface.output("Hello World")
 
     def run(self):
-        self.commands.get(self.command, self.default)(self, *self.arguments)
+        self.commands.get(self._command, self.default)(self, *self.arguments)
 
 
 @Engine.command("inverse-formula")
@@ -352,14 +354,9 @@ def matrix_multiply(engine: Engine, matrix_strings: str):
         engine.interface.step(engine.interface.render_matrices(matrices))
 
 
-@Engine.command("determinant-by-pattern")
+@Engine.command("list-patterns")
 def determinant_pattern(engine: Engine, matrix_string: str) -> None:
-    """
-    Determine the determinant using the pattern method.
-    Best method to calculate determinants, if you use
-    anything else then you are lame.
-    -- Zeb --
-    """
+    """List all the patterns in a matrix and their inversion counts."""
     matrix = Matrix.from_string(matrix_string)
     rendered_patterns = []
     rendered_inversion_counts = []
@@ -402,15 +399,56 @@ def determinant_pattern(engine: Engine, matrix_string: str) -> None:
     )
 
 
+@Engine.command("determinant-by-pattern")
+async def determinant_by_pattern(engine: Engine, matrix_string: str) -> None:
+    """
+    Determine the determinant using the pattern method.
+    Best method to calculate determinants, if you use
+    anything else then you are lame.
+    -- Zeb --
+    """
+    matrix = Matrix.from_string(matrix_string)
+    engine.interface.output(engine.interface.render_matrix(matrix, "vmatrix"))
+    engine.interface.step(
+        "".join(
+            f"(-1)^{len(inversions)}"
+            + "".join(f"\\left({matrix.body[j][i]})\\right)" for i, j in pattern)
+            for pattern, inversions in matrix.patterns()
+        )
+    )
+    engine.interface.step(
+        "".join(
+            str(
+                Fraction(
+                    (-1) ** len(inversions)
+                    + reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
+                )
+            )
+            for pattern, inversions in matrix.patterns()
+        )
+    )
+    engine.interface.step(
+        str(
+            sum(
+                Fraction(
+                    (-1) ** len(inversions)
+                    + reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
+                )
+                for pattern, inversions in matrix.patterns()
+            )
+        )
+    )
+
+
 def main():
-    with pathlib.Path(sys.argv[1]).open("r") as file:
-        config = json.loads(file.read())
-    Engine(**config).run()
+    try:
+        with pathlib.Path(sys.argv[1]).open("r", encoding="utf-8") as file:
+            config = json.loads(file.read())
+        Engine(**config).run()
+    except BaseException:  # pylint: disable=broad-except
+        print(f"\\typeout{{{traceback.format_exc()}}}")
+        exit(1)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except BaseException:
-        print(f"\\typeout{{{traceback.format_exc()}}}")
-        exit(1)
+    main()
