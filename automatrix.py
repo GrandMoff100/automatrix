@@ -256,7 +256,12 @@ class Engine:
     commands = {}
 
     def __init__(
-        self, command: str, arguments: list[str], debug: bool, matrix_class: str, pattern_grid_width: int,
+        self,
+        command: str,
+        arguments: list[str],
+        debug: bool,
+        matrix_class: str,
+        pattern_grid_width: int,
     ):
         self.command = command
         self.arguments = arguments
@@ -356,22 +361,45 @@ def determinant_pattern(engine: Engine, matrix_string: str) -> None:
     -- Zeb --
     """
     matrix = Matrix.from_string(matrix_string)
-    pattern_grid = []
-    for pattern, inversions in matrix.patterns():
+    rendered_patterns = []
+    rendered_inversion_counts = []
+    rendered_inversion_arrows = []
+    for i, (pattern, inversions) in enumerate(matrix.patterns()):
         rendered_pattern, node_names = engine.interface.wrap_matrix_with_nodes(
-            engine.interface.embed_pattern(matrix, pattern)
+            engine.interface.embed_pattern(matrix, pattern),
+            node_name_prefix=f"pattern{i}-",
         )
-        pattern_bmatrix = engine.interface.render_grid(rendered_pattern, "bmatrix")
-        pattern_grid.append(pattern_bmatrix)
-        # engine.interface.output(
-        #     engine.interface.draw_arrows(
-        #         pattern,
-        #         [
-        #             (node_names[j1][i1], node_names[j2][i2])
-        #             for (i1, j1), (i2, j2) in inversions
-        #         ],
-        #     )
-        # )
+        rendered_patterns.append(
+            engine.interface.render_grid(rendered_pattern, "bmatrix")
+        )
+        if inversions:
+            rendered_inversion_arrows.append(
+                engine.interface.draw_arrows(
+                    [
+                        (node_names[j1][i1], node_names[j2][i2])
+                        for (i1, j1), (i2, j2) in inversions
+                    ],
+                )
+            )
+        rendered_inversion_counts.append(
+            f"{len(inversions)}"
+            + engine.interface.render_command(
+                "text",
+                " inversion" + "s" * int(len(inversions) != 1),
+            )
+        )
+    display_matrix = intersperse(
+        rectangularize(rendered_patterns, engine.interface.pattern_grid_width),
+        rectangularize(rendered_inversion_counts, engine.interface.pattern_grid_width),
+    )
+    engine.interface.output(f"\\[{engine.interface.render_grid(display_matrix)}\\]")
+    engine.interface.output(
+        engine.interface.render_environment(
+            "tikzpicture",
+            "\n".join(rendered_inversion_arrows),
+            options="[remember picture,overlay]",
+        )
+    )
 
 
 def main():
