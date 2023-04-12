@@ -206,10 +206,7 @@ class LatexInterface:
 
     def draw_arrows(self, arrows: list[tuple[str, str]]) -> list[list[str]]:
         """Draw arrows between the tikz nodes in a matrix"""
-        return self.render_environment(
-            "tikzpicture",
-            "\n".join(f"\\draw [->] ({start}) -- ({end})" for start, end in arrows),
-        )
+        return "\n".join(f"\\draw [->] ({start}) -- ({end});" for start, end in arrows)
 
     def render_grid(
         self, matrix_body: list[list[Any]], matrix_class: str | None = None
