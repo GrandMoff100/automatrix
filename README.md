@@ -8,11 +8,13 @@ Copy `automatrix.sty` and `automatrix.py` into your project (and have LaTeX and 
 
 ## Commands
 
-### ``\autoinversebyformula{}``
+### ``\autoinverse2x2[]``
 
 ### ``\autoinversebyrref{}``
 
 ### ``\automatrixmultiply{}``
+
+### ``\autolistpatterns{}``
 
 ### ``\autodeterminantbypattern{}``
 
