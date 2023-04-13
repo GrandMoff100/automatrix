@@ -337,28 +337,28 @@ class Dispatcher:
 
 
 @Dispatcher.command("inverse-2x2-formula")
-def inverse_by_formula(engine: Dispatcher, matrix: str):
+def inverse_by_formula(dispatcher: Dispatcher, matrix: str):
     """Calculate the inverse of a 2x2 matrix using the formula"""
     matrix = Matrix.from_string(matrix)
     (a, b), (c, d) = matrix.body
-    engine.interface.step(
+    dispatcher.interface.step(
         f"\\frac{{1}}{{\\left({a}\\right)\\left({d}\\right)-\\left({b}\\right)\\left({c}\\right)}}"
-        + engine.interface.render_matrix(Matrix([[d, -b], [-c, a]]))
+        + dispatcher.interface.render_matrix(Matrix([[d, -b], [-c, a]]))
     )
     det = matrix.determinant()
-    engine.interface.step(
-        engine.interface.render_matrix(
+    dispatcher.interface.step(
+        dispatcher.interface.render_matrix(
             Matrix([[d / det, -b / det], [-c / det, a / det]])
         )
     )
 
 
 @Dispatcher.command("inverse-rref")
-def inverse_by_rref(engine: Dispatcher, matrix: str):
+def inverse_by_rref(dispatcher: Dispatcher, matrix: str):
     """Calculate the inverse of a matrix using row reduction"""
     matrix = Matrix.from_string(matrix)
     augmented = AugmentedMatrix(matrix, matrix.identity(matrix.rows))
-    engine.interface.output(engine.interface.render_augmented(augmented))
+    dispatcher.interface.output(dispatcher.interface.render_augmented(augmented))
     # Find a pivot for the first column
     for column in range(augmented.left.columns):
         pivot_row = augmented.find_pivot_row(column)
@@ -366,29 +366,29 @@ def inverse_by_rref(engine: Dispatcher, matrix: str):
             continue
         elif pivot_row != column:
             augmented.move_row(pivot_row, column)
-            engine.interface.step(
-                engine.interface.render_augmented(augmented), prefix="&\\implies "
+            dispatcher.interface.step(
+                dispatcher.interface.render_augmented(augmented), prefix="&\\implies "
             )
         # Make the pivot
         if 1 / augmented.left.body[column][column] != 1:
             augmented.scale_row(1 / augmented.left.body[column][column], column)
-            engine.interface.step(
-                engine.interface.render_augmented(augmented), prefix="&\\implies "
+            dispatcher.interface.step(
+                dispatcher.interface.render_augmented(augmented), prefix="&\\implies "
             )
         # Make the rest of the column 0
         for row in range(augmented.left.rows):
             if row != column:
                 augmented.add_to_row(-augmented.left.body[row][column], column, row)
-        engine.interface.step(
-            engine.interface.render_augmented(augmented), prefix="&\\implies "
+        dispatcher.interface.step(
+            dispatcher.interface.render_augmented(augmented), prefix="&\\implies "
         )
 
 
 @Dispatcher.command("matrix-multiply")
-def matrix_multiply(engine: Dispatcher, matrix_strings: str):
+def matrix_multiply(dispatcher: Dispatcher, matrix_strings: str):
     """Multiply a series of matrices together"""
     matrices = [Matrix.from_string(matrix) for matrix in matrix_strings.split(",")]
-    engine.interface.output(engine.interface.render_matrices(matrices))
+    dispatcher.interface.output(dispatcher.interface.render_matrices(matrices))
     while len(matrices) > 1:
         *others, left, right = matrices
         matrices = others + [left @ right]
@@ -404,28 +404,28 @@ def matrix_multiply(engine: Dispatcher, matrix_strings: str):
             ]
             for row in left.body
         ]
-        engine.interface.step(engine.interface.render_matrices(others + [left]))
-        engine.interface.step(engine.interface.render_matrices(matrices))
+        dispatcher.interface.step(dispatcher.interface.render_matrices(others + [left]))
+        dispatcher.interface.step(dispatcher.interface.render_matrices(matrices))
 
 
 @Dispatcher.command("list-patterns")
-def list_patterns(engine: Dispatcher, matrix_string: str) -> None:
+def list_patterns(dispatcher: Dispatcher, matrix_string: str) -> None:
     """List all the patterns in a matrix and their inversion counts."""
     matrix = Matrix.from_string(matrix_string)
     rendered_patterns = []
     rendered_inversion_counts = []
     rendered_inversion_arrows = []
     for i, (pattern, inversions) in enumerate(matrix.patterns()):
-        rendered_pattern, node_names = engine.interface.wrap_matrix_with_nodes(
-            engine.interface.embed_pattern(matrix, pattern),
+        rendered_pattern, node_names = dispatcher.interface.wrap_matrix_with_nodes(
+            dispatcher.interface.embed_pattern(matrix, pattern),
             node_name_prefix=f"pattern{i}-",
         )
         rendered_patterns.append(
-            engine.interface.render_grid(rendered_pattern, "bmatrix")
+            dispatcher.interface.render_grid(rendered_pattern, "bmatrix")
         )
         if inversions:
             rendered_inversion_arrows.append(
-                engine.interface.draw_arrows(
+                dispatcher.interface.draw_arrows(
                     [
                         (node_names[j1][i1], node_names[j2][i2])
                         for (i1, j1), (i2, j2) in inversions
@@ -434,18 +434,18 @@ def list_patterns(engine: Dispatcher, matrix_string: str) -> None:
             )
         rendered_inversion_counts.append(
             f"{len(inversions)}"
-            + engine.interface.render_command(
+            + dispatcher.interface.render_command(
                 "text",
                 " inversion" + "s" * int(len(inversions) != 1),
             )
         )
     display_matrix = intersperse(
-        rectangularize(rendered_patterns, engine.interface.pattern_grid_width),
-        rectangularize(rendered_inversion_counts, engine.interface.pattern_grid_width),
+        rectangularize(rendered_patterns, dispatcher.interface.pattern_grid_width),
+        rectangularize(rendered_inversion_counts, dispatcher.interface.pattern_grid_width),
     )
-    engine.interface.output(f"\\[{engine.interface.render_grid(display_matrix)}\\]")
-    engine.interface.output(
-        engine.interface.render_environment(
+    dispatcher.interface.output(f"\\[{dispatcher.interface.render_grid(display_matrix)}\\]")
+    dispatcher.interface.output(
+        dispatcher.interface.render_environment(
             "tikzpicture",
             "\n".join(rendered_inversion_arrows),
             options="[remember picture,overlay]",
@@ -454,7 +454,7 @@ def list_patterns(engine: Dispatcher, matrix_string: str) -> None:
 
 
 @Dispatcher.command("determinant-by-pattern")
-def determinant_by_pattern(engine: Dispatcher, matrix_string: str) -> None:
+def determinant_by_pattern(dispatcher: Dispatcher, matrix_string: str) -> None:
     """
     Determine the determinant using the pattern method.
     Best method to calculate determinants, if you use
@@ -462,9 +462,9 @@ def determinant_by_pattern(engine: Dispatcher, matrix_string: str) -> None:
     -- Zeb --
     """
     matrix = Matrix.from_string(matrix_string)
-    with engine.interface.output_environment("align*"):
-        engine.interface.output(engine.interface.render_matrix(matrix, "vmatrix"))
-        engine.interface.step(
+    with dispatcher.interface.output_environment("align*"):
+        dispatcher.interface.output(dispatcher.interface.render_matrix(matrix, "vmatrix"))
+        dispatcher.interface.step(
             "+".join(
                 f"(-1)^{len(inversions)}"
                 + "".join(f"\\left({matrix.body[j][i]}\\right)" for i, j in pattern)
@@ -472,7 +472,7 @@ def determinant_by_pattern(engine: Dispatcher, matrix_string: str) -> None:
                 if 0 not in (matrix.body[j][i] for i, j in pattern)
             )
         )
-        engine.interface.step(
+        dispatcher.interface.step(
             remove_prefix(
                 "".join(
                     "+" * int(product >= 0) + str(product)
@@ -490,7 +490,7 @@ def determinant_by_pattern(engine: Dispatcher, matrix_string: str) -> None:
                 "+",
             )
         )
-        engine.interface.step(
+        dispatcher.interface.step(
             str(
                 sum(
                     Fraction(
@@ -504,6 +504,10 @@ def determinant_by_pattern(engine: Dispatcher, matrix_string: str) -> None:
             ),
             newline="",
         )
+
+@Dispatcher.command("determinant-by-cofactor")
+def determinant_by_cofactor(dispatcher: Dispatcher, matrix_string: str) -> None:
+    pass
 
 
 def main():
