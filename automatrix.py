@@ -21,7 +21,7 @@ def remove_prefix(text: str, prefix: str) -> str:
 
 
 def intersperse(
-    _iterable: Iterable[Any], delimiters: Iterable[Any]
+    _iterable: Iterable[Any], delimiters: Iterable[Any],
 ) -> Generator[Any, None, None]:
     """
     Intersperse elements in a delimiter iterable in between elements in an iterable.
@@ -43,6 +43,7 @@ def rectangularize(_iterable: Iterable[Any], width: int) -> list[list[Any]]:
 
 
 class Matrix:
+    """A math matrix class."""
     def __init__(self, body: list[list[Fraction]]) -> None:
         self.body = body
 
@@ -59,28 +60,33 @@ class Matrix:
         (a, b), (c, d) = self.body
         return a * d - b * c
 
-    def crop(self, x: int, y: int) -> "Matrix":
+    def crop(self, column: int, row: int) -> "Matrix":
+        """Crop a matrix by removing a row and column."""
         new = Matrix(copy.deepcopy(self.body))
-        new.body.pop(y)
+        new.body.pop(row)
         for row in new.body:
-            row.pop(x)
+            row.pop(column)
         return new
 
     @property
     def rows(self) -> int:
+        """Return the number of rows in the matrix."""
         return len(self.body)
 
     @property
     def columns(self) -> int:
+        """Return the number of columns in the matrix."""
         return len(self.body[0])
 
     @property
     def shape(self) -> tuple[int, int]:
+        """Return the shape of the matrix as a tuple."""
         return (self.rows, self.columns)
 
     @classmethod
-    def identity(cls, n: int) -> "Matrix":
-        return Matrix([[1 if i == j else 0 for i in range(n)] for j in range(n)])
+    def identity(cls, size: int) -> "Matrix":
+        """Return the identity matrix of any size."""
+        return Matrix([[1 if i == j else 0 for i in range(size)] for j in range(size)])
 
     def __matmul__(self, matrix) -> "Matrix":
         if self.columns != matrix.rows:
@@ -128,16 +134,19 @@ class Matrix:
 
 
 class AugmentedMatrix:
-    def __init__(self, left: Matrix, right: Matrix):
+    """An augmented matrix of two smaller `Matrix`'s."""
+    def __init__(self, left: Matrix, right: Matrix) -> None:
         self.left = left
         self.right = right
 
-    def row_operation(self, row_coefficients: list[int], target_row: int):
+    def row_operation(self, row_coefficients: list[int], target_row: int) -> None:
+        """Perform a row operation on the matrix."""
         self.left.body[target_row] = self.row_combination(self.left, row_coefficients)
         self.right.body[target_row] = self.row_combination(self.right, row_coefficients)
 
     @staticmethod
     def row_combination(matrix: Matrix, row_coefficients: list[int]) -> list[Fraction]:
+        """Linearly combine rows of a matrix."""
         return [
             sum(column)
             for column in zip(
@@ -149,6 +158,7 @@ class AugmentedMatrix:
         ]
 
     def is_identity(self) -> bool:
+        """Check if the left matrix is an identity matrix."""
         return all(
             [
                 self.left.body[i][j] == 1 if i == j else self.left.body[i][j] == 0
@@ -159,21 +169,25 @@ class AugmentedMatrix:
         )
 
     def find_pivot_row(self, column: int) -> int | None:
+        """Find the first non-zero element in a column."""
         for i, row in enumerate(self.left.body):
             if row[column] != 0 and i >= column:
                 return i
         return None
 
     def move_row(self, row: int, target: int) -> None:
+        """Move a row to a new position."""
         self.left.body.insert(target, self.left.body.pop(row))
         self.right.body.insert(target, self.right.body.pop(row))
 
     def scale_row(self, coeff: Fraction, row: int) -> None:
+        """Scale a row by a coefficient."""
         coeffs = [0] * self.left.rows
         coeffs[row] = coeff
         self.row_operation(coeffs, row)
 
     def add_to_row(self, coeff: Fraction, source: int, target: int) -> None:
+        """Add a linear combination of rows to another row."""
         coeffs = [0] * self.left.rows
         coeffs[source] = coeff
         coeffs[target] = 1
@@ -181,6 +195,7 @@ class AugmentedMatrix:
 
 
 class LatexInterface:
+    """A class to render raw LaTeX."""
     def __init__(self, matrix_class: str, pattern_grid_width: int) -> None:
         self.matrix_class = matrix_class
         self.pattern_grid_width = pattern_grid_width
@@ -221,6 +236,7 @@ class LatexInterface:
     def render_grid(
         self, matrix_body: list[list[Any]], matrix_class: str | None = None
     ) -> str:
+        """Render elements in an invisible LaTeX matrix"""
         if matrix_class is None:
             matrix_class = "matrix"
         return self.render_environment(
@@ -231,44 +247,54 @@ class LatexInterface:
         )
 
     def render_matrix(self, matrix: Matrix, matrix_class: str | None = None) -> str:
+        """Render a matrix as a LaTeX matrix"""
         if matrix_class is None:
             matrix_class = self.matrix_class
         return self.render_grid(matrix.body, matrix_class)
 
     def render_matrices(self, matrices: list[Matrix], matrix_class: str | None = None):
+        """Render multiple matrices as LaTeX matrices"""
         return "".join(
             [self.render_matrix(matrix, matrix_class) for matrix in matrices]
         )
 
     def render_augmented(self, matrix: AugmentedMatrix):
+        """Render an augmented matrix as a LaTeX matrix"""
         return self.render_command(
             "augmentedmatrix",
             self.render_matrices([matrix.left, matrix.right], "matrix"),
         )
 
     def render_environment(self, environment: str, content: str, options: str = ""):
+        """Render a LaTeX environment"""
         return f"\\begin{{{environment}}}{options}\n{content}\n\\end{{{environment}}}"
 
     def render_command(self, command: str, *args: str):
+        """Render a LaTeX command"""
         return f"\\{command}" + "".join([f"{{{arg}}}" for arg in args])
 
     def output_debug(self, text: str) -> None:
+        """Output debug information"""
         self.output(self.render_environment("verbatim", text))
 
     def output(self, text: str) -> None:
+        """Output raw LaTeX to stdout"""
         print(text)
 
     def step(self, line: str, newline: str = "\\\\", prefix: str = "&= ") -> None:
+        """Output a step in a proof"""
         self.output(f"{prefix}{line}{newline}")
 
     @contextlib.contextmanager
     def output_environment(self, name: str) -> None:
+        """Output within LaTeX environment"""
         self.output(f"\\begin{{{name}}}")
         yield
         self.output(f"\\end{{{name}}}")
 
 
-class Engine:
+class Dispatcher:
+    """A class to dispatch commands to functions"""
     commands = {}
 
     def __init__(
@@ -286,6 +312,7 @@ class Engine:
 
     @classmethod
     def command(cls, name: str):
+        """A decorator to register a command"""
         def wrapper(func):
             cls.commands[name] = func
             return func
@@ -293,14 +320,17 @@ class Engine:
         return wrapper
 
     def default(self, *_):
+        """The default command"""
         self.interface.output("Hello World")
 
     def run(self):
+        """Run the command"""
         self.commands.get(self._command, self.default)(self, *self.arguments)
 
 
-@Engine.command("inverse-formula")
-def inverse_by_formula(engine: Engine, matrix: str):
+@Dispatcher.command("inverse-2x2-formula")
+def inverse_by_formula(engine: Dispatcher, matrix: str):
+    """Calculate the inverse of a 2x2 matrix using the formula"""
     matrix = Matrix.from_string(matrix)
     (a, b), (c, d) = matrix.body
     engine.interface.step(
@@ -315,8 +345,9 @@ def inverse_by_formula(engine: Engine, matrix: str):
     )
 
 
-@Engine.command("inverse-rref")
-def inverse_by_rref(engine: Engine, matrix: str):
+@Dispatcher.command("inverse-rref")
+def inverse_by_rref(engine: Dispatcher, matrix: str):
+    """Calculate the inverse of a matrix using row reduction"""
     matrix = Matrix.from_string(matrix)
     augmented = AugmentedMatrix(matrix, matrix.identity(matrix.rows))
     engine.interface.output(engine.interface.render_augmented(augmented))
@@ -345,8 +376,9 @@ def inverse_by_rref(engine: Engine, matrix: str):
         )
 
 
-@Engine.command("matrix-multiply")
-def matrix_multiply(engine: Engine, matrix_strings: str):
+@Dispatcher.command("matrix-multiply")
+def matrix_multiply(engine: Dispatcher, matrix_strings: str):
+    """Multiply a series of matrices together"""
     matrices = [Matrix.from_string(matrix) for matrix in matrix_strings.split(",")]
     engine.interface.output(engine.interface.render_matrices(matrices))
     while len(matrices) > 1:
@@ -368,8 +400,8 @@ def matrix_multiply(engine: Engine, matrix_strings: str):
         engine.interface.step(engine.interface.render_matrices(matrices))
 
 
-@Engine.command("list-patterns")
-def list_patterns(engine: Engine, matrix_string: str) -> None:
+@Dispatcher.command("list-patterns")
+def list_patterns(engine: Dispatcher, matrix_string: str) -> None:
     """List all the patterns in a matrix and their inversion counts."""
     matrix = Matrix.from_string(matrix_string)
     rendered_patterns = []
@@ -413,8 +445,8 @@ def list_patterns(engine: Engine, matrix_string: str) -> None:
     )
 
 
-@Engine.command("determinant-by-pattern")
-def determinant_by_pattern(engine: Engine, matrix_string: str) -> None:
+@Dispatcher.command("determinant-by-pattern")
+def determinant_by_pattern(engine: Dispatcher, matrix_string: str) -> None:
     """
     Determine the determinant using the pattern method.
     Best method to calculate determinants, if you use
@@ -456,10 +488,11 @@ def determinant_by_pattern(engine: Engine, matrix_string: str) -> None:
 
 
 def main():
+    """Main entry point for the program"""
     try:
         with pathlib.Path(sys.argv[1]).open("r", encoding="utf-8") as file:
             config = json.loads(file.read())
-        Engine(**config).run()
+        Dispatcher(**config).run()
     except BaseException:  # pylint: disable=broad-except
         print(f"\\typeout{{{traceback.format_exc()}}}")
         exit(1)
