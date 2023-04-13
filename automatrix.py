@@ -13,6 +13,13 @@ from typing import Any, Generator, Iterable
 import contextlib
 
 
+def remove_prefix(text: str, prefix: str) -> str:
+    """Remove a prefix from a string."""
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
+
+
 def intersperse(
     _iterable: Iterable[Any], delimiters: Iterable[Any]
 ) -> Generator[Any, None, None]:
@@ -422,16 +429,18 @@ def determinant_by_pattern(engine: Engine, matrix_string: str) -> None:
                 f"(-1)^{len(inversions)}"
                 + "".join(f"\\left({matrix.body[j][i]}\\right)" for i, j in pattern)
                 for pattern, inversions in matrix.patterns()
+                    if 0 not in (matrix.body[j][i] for i, j in pattern)
             )
         )
         engine.interface.step(
-            "".join("+" * int(product >= 0) + str(product) for product in (
+            remove_prefix("".join("+" * int(product >= 0) + str(product) for product in (
                 Fraction(
                         (-1) ** len(inversions)
                         * reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
                     )
                 for pattern, inversions in matrix.patterns()
-            )).removeprefix("+"))
+                    if 0 not in (matrix.body[j][i] for i, j in pattern)
+            )),"+"))
         engine.interface.step(
             str(
                 sum(
