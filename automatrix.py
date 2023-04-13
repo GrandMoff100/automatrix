@@ -16,12 +16,13 @@ import contextlib
 def remove_prefix(text: str, prefix: str) -> str:
     """Remove a prefix from a string."""
     if text.startswith(prefix):
-        return text[len(prefix):]
+        return text[len(prefix) :]
     return text
 
 
 def intersperse(
-    _iterable: Iterable[Any], delimiters: Iterable[Any],
+    _iterable: Iterable[Any],
+    delimiters: Iterable[Any],
 ) -> Generator[Any, None, None]:
     """
     Intersperse elements in a delimiter iterable in between elements in an iterable.
@@ -44,6 +45,7 @@ def rectangularize(_iterable: Iterable[Any], width: int) -> list[list[Any]]:
 
 class Matrix:
     """A math matrix class."""
+
     def __init__(self, body: list[list[Fraction]]) -> None:
         self.body = body
 
@@ -135,6 +137,7 @@ class Matrix:
 
 class AugmentedMatrix:
     """An augmented matrix of two smaller `Matrix`'s."""
+
     def __init__(self, left: Matrix, right: Matrix) -> None:
         self.left = left
         self.right = right
@@ -196,6 +199,7 @@ class AugmentedMatrix:
 
 class LatexInterface:
     """A class to render raw LaTeX."""
+
     def __init__(self, matrix_class: str, pattern_grid_width: int) -> None:
         self.matrix_class = matrix_class
         self.pattern_grid_width = pattern_grid_width
@@ -231,7 +235,9 @@ class LatexInterface:
 
     def draw_arrows(self, arrows: list[tuple[str, str]]) -> list[list[str]]:
         """Draw arrows between the tikz nodes in a matrix"""
-        return "\n".join(f"\\draw [->] ({start}) to[bend left=30] ({end});" for start, end in arrows)
+        return "\n".join(
+            f"\\draw [->] ({start}) to[bend left=30] ({end});" for start, end in arrows
+        )
 
     def render_grid(
         self, matrix_body: list[list[Any]], matrix_class: str | None = None
@@ -295,6 +301,7 @@ class LatexInterface:
 
 class Dispatcher:
     """A class to dispatch commands to functions"""
+
     commands = {}
 
     def __init__(
@@ -313,6 +320,7 @@ class Dispatcher:
     @classmethod
     def command(cls, name: str):
         """A decorator to register a command"""
+
         def wrapper(func):
             cls.commands[name] = func
             return func
@@ -461,29 +469,40 @@ def determinant_by_pattern(engine: Dispatcher, matrix_string: str) -> None:
                 f"(-1)^{len(inversions)}"
                 + "".join(f"\\left({matrix.body[j][i]}\\right)" for i, j in pattern)
                 for pattern, inversions in matrix.patterns()
-                    if 0 not in (matrix.body[j][i] for i, j in pattern)
+                if 0 not in (matrix.body[j][i] for i, j in pattern)
             )
         )
         engine.interface.step(
-            remove_prefix("".join("+" * int(product >= 0) + str(product) for product in (
-                Fraction(
-                        (-1) ** len(inversions)
-                        * reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
+            remove_prefix(
+                "".join(
+                    "+" * int(product >= 0) + str(product)
+                    for product in (
+                        Fraction(
+                            (-1) ** len(inversions)
+                            * reduce(
+                                operator.mul, (matrix.body[j][i] for i, j in pattern), 1
+                            )
+                        )
+                        for pattern, inversions in matrix.patterns()
+                        if 0 not in (matrix.body[j][i] for i, j in pattern)
                     )
-                for pattern, inversions in matrix.patterns()
-                    if 0 not in (matrix.body[j][i] for i, j in pattern)
-            )),"+"))
+                ),
+                "+",
+            )
+        )
         engine.interface.step(
             str(
                 sum(
                     Fraction(
                         (-1) ** len(inversions)
-                        * reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
+                        * reduce(
+                            operator.mul, (matrix.body[j][i] for i, j in pattern), 1
+                        )
                     )
                     for pattern, inversions in matrix.patterns()
                 )
             ),
-            newline=""
+            newline="",
         )
 
 
