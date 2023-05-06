@@ -1,16 +1,17 @@
+"""A module for performing matrix operations and showing the work for them."""
 from __future__ import annotations
 
+import contextlib
 import copy
 import itertools
-from functools import reduce
 import json
 import operator
-from fractions import Fraction
 import pathlib
 import sys
 import traceback
+from fractions import Fraction
+from functools import reduce
 from typing import Any, Generator, Iterable
-import contextlib
 
 
 def remove_prefix(text: str, prefix: str) -> str:
@@ -58,9 +59,19 @@ class Matrix:
         )
 
     def determinant(self) -> Fraction:
-        """Calculate the determinant of a 2x2 matrix."""
-        (a, b), (c, d) = self.body
-        return a * d - b * c
+        """Calculate the determinant of a matrix using cofactor expansion and the 2x2 formula."""
+        if self.shape == (1, 1):
+            return self.body[0][0]
+        elif self.shape == (2, 2):
+            (a, b), (c, d) = self.body  # pylint: disable=invalid-name
+            return a * d - b * c
+        else:
+            return sum(
+                [
+                    (-1) ** i * self.body[0][i] * self.crop(i, 0).determinant()
+                    for i in range(self.columns)
+                ]
+            )
 
     def crop(self, column: int, row: int) -> "Matrix":
         """Crop a matrix by removing a row and column."""
@@ -118,7 +129,10 @@ class Matrix:
         None,
         None,
     ]:
-        """Generate the "patterns" and the "inversions" of each "pattern" of a matrix, i.e. the permutations of its columns/rows"""
+        """
+        Generate the "patterns" and the "inversions" of each "pattern" of a matrix
+        i.e. the permutations of its columns/rows.
+        """
         for row_permutation in itertools.permutations(range(self.rows)):
             pattern = [
                 (i, j)
@@ -222,7 +236,10 @@ class LatexInterface:
     def embed_pattern(
         self, matrix: Matrix, pattern: list[tuple[int, int]]
     ) -> list[list[str]]:
-        """Embed a pattern into a matrix, i.e. circle the elements of the matrix that are in the pattern"""
+        """
+        Embed a pattern into a matrix
+        i.e. circle the elements of the matrix that are in the pattern
+        """
         return [
             [
                 self.render_command("circled", element)
@@ -340,7 +357,7 @@ class Dispatcher:
 def inverse_by_formula(dispatcher: Dispatcher, matrix: str):
     """Calculate the inverse of a 2x2 matrix using the formula"""
     matrix = Matrix.from_string(matrix)
-    (a, b), (c, d) = matrix.body
+    (a, b), (c, d) = matrix.body  # pylint: disable=invalid-name
     dispatcher.interface.step(
         f"\\frac{{1}}{{\\left({a}\\right)\\left({d}\\right)-\\left({b}\\right)\\left({c}\\right)}}"
         + dispatcher.interface.render_matrix(Matrix([[d, -b], [-c, a]]))
@@ -441,9 +458,13 @@ def list_patterns(dispatcher: Dispatcher, matrix_string: str) -> None:
         )
     display_matrix = intersperse(
         rectangularize(rendered_patterns, dispatcher.interface.pattern_grid_width),
-        rectangularize(rendered_inversion_counts, dispatcher.interface.pattern_grid_width),
+        rectangularize(
+            rendered_inversion_counts, dispatcher.interface.pattern_grid_width
+        ),
     )
-    dispatcher.interface.output(f"\\[{dispatcher.interface.render_grid(display_matrix)}\\]")
+    dispatcher.interface.output(
+        f"\\[{dispatcher.interface.render_grid(display_matrix)}\\]"
+    )
     dispatcher.interface.output(
         dispatcher.interface.render_environment(
             "tikzpicture",
@@ -463,7 +484,9 @@ def determinant_by_pattern(dispatcher: Dispatcher, matrix_string: str) -> None:
     """
     matrix = Matrix.from_string(matrix_string)
     with dispatcher.interface.output_environment("align*"):
-        dispatcher.interface.output(dispatcher.interface.render_matrix(matrix, "vmatrix"))
+        dispatcher.interface.output(
+            dispatcher.interface.render_matrix(matrix, "vmatrix")
+        )
         dispatcher.interface.step(
             "+".join(
                 f"(-1)^{len(inversions)}"
@@ -504,10 +527,6 @@ def determinant_by_pattern(dispatcher: Dispatcher, matrix_string: str) -> None:
             ),
             newline="",
         )
-
-@Dispatcher.command("determinant-by-cofactor")
-def determinant_by_cofactor(dispatcher: Dispatcher, matrix_string: str) -> None:
-    pass
 
 
 def main():
