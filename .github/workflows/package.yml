@@ -22,4 +22,6 @@ jobs:
       run: python package.py automatrix.zip
     - name: Upload automatrix.zip and automatrix.sty
       run: gh release upload ${{ github.ref_name }} automatrix.zip automatrix.sty
+      env: 
+        GH_TOKEN: ${{ github.token }}
     
