@@ -22,8 +22,6 @@ Copy `automatrix.sty` and `automatrix.zip` from the latest Release into your pro
 
 Automatically get a determinant using the pattern method. Only argument is the matrix.
 
-### ``\autodeterminantbycofactor{}``
-
 ## Example
 ```tex
 \usepackage{automatrix}
