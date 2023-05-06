@@ -20,8 +20,6 @@ jobs:
         python-version: '3.x'
     - name: Compile to zip
       run: python package.py automatrix.zip
-    - uses: AButler/upload-release-assets@v2.0
-      with:
-        files: 'automatrix.zip;automatrix.sty'
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload automatrix.zip and automatrix.sty
+      run: gh release upload ${{ github.ref_name }} automatrix.zip automatrix.sty
     
