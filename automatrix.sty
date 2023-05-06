@@ -1,12 +1,22 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{automatrix}[A package that does matrix operations for you.]
+\RequirePackage{tikz}
+\RequirePackage{mdframed}
+\RequirePackage{amsmath}
+
+\usetikzlibrary{tikzmark, calc}
+
 
 %% Package rendering commands
 \newcommand{\augmentedmatrix}[2]{\left(#1\right.\left| ~ #2\right)}
 
 %% Package variables
-\newcommand{\matrixclass}{matrix}
+\newcommand{\matrixclass}{bmatrix}
 \newcommand{\setmatrixclass}[1]{\renewcommand{\matrixclass}{#1}}
+
+\newcommand{\patterngridwidth}{3}
+\newcommand{\setpatterngridwidth}[1]{\renewcommand{\patterngridwidth}{#1}}
+
 
 \newcommand{\automatrixdebug}{true}
 \newcommand{\setmatrixdebug}[1]{\renewcommand{\automatrixdebug}{#1}}
@@ -24,7 +34,7 @@
 }
 
 \newcommand{\auto}[2]{
-    \store{\temp}{temp.input}{{"command": "#1", "arguments": #2, "matrix_class": "\matrixclass", "debug": \automatrixdebug}}
+    \store{\temp}{temp.input}{{"command": "#1", "arguments": #2, "matrix_class": "\matrixclass", "debug": \automatrixdebug, "pattern_grid_width": \patterngridwidth}}
     \store{\debug}{debug.out}{}
     \input{|"python automatrix.py temp.input"}
 }
@@ -36,3 +46,13 @@
 \newcommand{\autolistpatterns}[1]{\auto{list-patterns}{["#1"]}}
 \newcommand{\autodeterminantbypattern}[1]{\auto{determinant-by-pattern}{["#1"]}}
 \newcommand{\autodeterminantbycofactor}[1]{\auto{determinant-by-cofactor-expansion}{["#1"]}}
+\newcommand{\autodetpat}[1]{\autodeterminantbypattern{#1}}
+
+%% Used for circling numbers in determinant-by-pattern
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
+
+%% Remember elements in a matrix to arrows between them.
+\newcommand{\rn}[2]{
+    \tikz[remember picture]\node [inner sep=0] (#1) {$#2$};
+}

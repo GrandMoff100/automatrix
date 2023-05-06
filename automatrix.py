@@ -14,6 +14,7 @@ from functools import reduce
 from typing import Any, Generator, Iterable
 
 
+
 def remove_prefix(text: str, prefix: str) -> str:
     """Remove a prefix from a string."""
     if text.startswith(prefix):
@@ -79,6 +80,13 @@ class Matrix:
         new.body.pop(row)
         for row in new.body:
             row.pop(column)
+        return new
+
+    def crop(self, x: int, y: int) -> "Matrix":
+        new = Matrix(copy.deepcopy(self.body))
+        new.body.pop(y)
+        for row in new.body:
+            row.pop(x)
         return new
 
     @property
@@ -255,6 +263,7 @@ class LatexInterface:
         return "\n".join(
             f"\\draw [->] ({start}) to[bend left=30] ({end});" for start, end in arrows
         )
+
 
     def render_grid(
         self, matrix_body: list[list[Any]], matrix_class: str | None = None
@@ -474,6 +483,51 @@ def list_patterns(dispatcher: Dispatcher, matrix_string: str) -> None:
     )
 
 
+@Dispatcher.command("list-patterns")
+def list_patterns(dispatcher: Dispatcher, matrix_string: str) -> None:
+    """List all the patterns in a matrix and their inversion counts."""
+    matrix = Matrix.from_string(matrix_string)
+    rendered_patterns = []
+    rendered_inversion_counts = []
+    rendered_inversion_arrows = []
+    for i, (pattern, inversions) in enumerate(matrix.patterns()):
+        rendered_pattern, node_names = dispatcher.interface.wrap_matrix_with_nodes(
+            dispatcher.interface.embed_pattern(matrix, pattern),
+            node_name_prefix=f"pattern{i}-",
+        )
+        rendered_patterns.append(
+            dispatcher.interface.render_grid(rendered_pattern, "bmatrix")
+        )
+        if inversions:
+            rendered_inversion_arrows.append(
+                dispatcher.interface.draw_arrows(
+                    [
+                        (node_names[j1][i1], node_names[j2][i2])
+                        for (i1, j1), (i2, j2) in inversions
+                    ],
+                )
+            )
+        rendered_inversion_counts.append(
+            f"{len(inversions)}"
+            + dispatcher.interface.render_command(
+                "text",
+                " inversion" + "s" * int(len(inversions) != 1),
+            )
+        )
+    display_matrix = intersperse(
+        rectangularize(rendered_patterns, dispatcher.interface.pattern_grid_width),
+        rectangularize(rendered_inversion_counts, dispatcher.interface.pattern_grid_width),
+    )
+    dispatcher.interface.output(f"\\[{dispatcher.interface.render_grid(display_matrix)}\\]")
+    dispatcher.interface.output(
+        dispatcher.interface.render_environment(
+            "tikzpicture",
+            "\n".join(rendered_inversion_arrows),
+            options="[remember picture,overlay]",
+        )
+    )
+
+
 @Dispatcher.command("determinant-by-pattern")
 def determinant_by_pattern(dispatcher: Dispatcher, matrix_string: str) -> None:
     """
@@ -484,53 +538,39 @@ def determinant_by_pattern(dispatcher: Dispatcher, matrix_string: str) -> None:
     """
     matrix = Matrix.from_string(matrix_string)
     with dispatcher.interface.output_environment("align*"):
-        dispatcher.interface.output(
-            dispatcher.interface.render_matrix(matrix, "vmatrix")
-        )
+        dispatcher.interface.output(dispatcher.interface.render_matrix(matrix, "vmatrix"))
         dispatcher.interface.step(
             "+".join(
                 f"(-1)^{len(inversions)}"
                 + "".join(f"\\left({matrix.body[j][i]}\\right)" for i, j in pattern)
                 for pattern, inversions in matrix.patterns()
-                if 0 not in (matrix.body[j][i] for i, j in pattern)
+                    if 0 not in (matrix.body[j][i] for i, j in pattern)
             )
         )
         dispatcher.interface.step(
-            remove_prefix(
-                "".join(
-                    "+" * int(product >= 0) + str(product)
-                    for product in (
-                        Fraction(
-                            (-1) ** len(inversions)
-                            * reduce(
-                                operator.mul, (matrix.body[j][i] for i, j in pattern), 1
-                            )
-                        )
-                        for pattern, inversions in matrix.patterns()
-                        if 0 not in (matrix.body[j][i] for i, j in pattern)
+            remove_prefix("".join("+" * int(product >= 0) + str(product) for product in (
+                Fraction(
+                        (-1) ** len(inversions)
+                        * reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
                     )
-                ),
-                "+",
-            )
-        )
+                for pattern, inversions in matrix.patterns()
+                    if 0 not in (matrix.body[j][i] for i, j in pattern)
+            )),"+"))
         dispatcher.interface.step(
             str(
                 sum(
                     Fraction(
                         (-1) ** len(inversions)
-                        * reduce(
-                            operator.mul, (matrix.body[j][i] for i, j in pattern), 1
-                        )
+                        * reduce(operator.mul, (matrix.body[j][i] for i, j in pattern), 1)
                     )
                     for pattern, inversions in matrix.patterns()
                 )
             ),
-            newline="",
+            newline=""
         )
 
 
 def main():
-    """Main entry point for the program"""
     try:
         with pathlib.Path(sys.argv[1]).open("r", encoding="utf-8") as file:
             config = json.loads(file.read())
