@@ -3,12 +3,12 @@ A latex integration that generates latex work showing the work for the matrix op
 
 ## Installation
 
-Copy `automatrix.sty` and `automatrix.py` into your project (and have LaTeX and python installed on your system).
+Copy `automatrix.sty` and `automatrix.zip` from the latest Release into your project (and have LaTeX and python installed on your system).
 
 
 ## Commands
 
-### ``\autoinverse2x2[]``
+### ``\autoinverse2x2{}``
 
 ### ``\autoinversebyrref{}``
 
