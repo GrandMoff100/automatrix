@@ -1,4 +1,4 @@
-name: Upload Python Package
+name: Package the project for distribution
 
 on:
   release:
@@ -19,14 +19,14 @@ jobs:
       with:
         python-version: '3.x'
     - name: Compile to zip
-      run: python package.py automatrix
+      run: python package.py automatrix.zip
     - name: Attach automatrix.zip to release
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ github.event.release.upload_url }}
         asset_path: ./automatrix.zip
         asset_name: automatrix.zip
-        asset_content_type: application/zip
+        asset_content_type: "application/zip"
     - name: Attach automatrix.sty to release
       uses: actions/upload-release-asset@v1
       with:
